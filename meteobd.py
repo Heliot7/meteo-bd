@@ -10,7 +10,10 @@ PATH_METEO_DATA = "data/Dades_meteorol_giques_de_la_XEMA.csv"
 PATH_METEO_KEYWORDS = "data/Metadades_variables_meteorol_giques.csv"
 
 
-def assign_weather_to_patient(consultations: Dict[int, Consultation], weather_observations: List[WeatherObservation]) -> Dict[int, Consultation]:
+def assign_weather_to_patient(
+    consultations: Dict[str, Consultation],
+    weather_observations: Dict[str, Dict[str, WeatherObservation]],
+) -> Dict[int, Consultation]:
     return consultations
 
 
