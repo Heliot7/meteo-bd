@@ -19,8 +19,8 @@ def assign_weather_to_patient(
 
 @click.command()
 def meteo_bd() -> None:
-    patients = parse_patient_data(PATH_PATIENT_DATA)
     weather_observations = parse_meteo_data(PATH_METEO_DATA, PATH_METEO_KEYWORDS)
+    patients = parse_patient_data(PATH_PATIENT_DATA)
     patients = assign_weather_to_patient(patients, weather_observations)
 
 
