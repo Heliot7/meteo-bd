@@ -73,6 +73,9 @@ def parse_meteo_data(
     weather_observations = get_data_from_station(
         csv_meteo_data, map_meteo_code, CODE_STATION_CLINIC
     )
+    weather_observations = dict(sorted(weather_observations.items()))
+    for date, observation in weather_observations.items():
+        weather_observations[date] = dict(sorted(observation.items()))
     if verbose:
         [
             print_time_weather_observations(key, observations)
