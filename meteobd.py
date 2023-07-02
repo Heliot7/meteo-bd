@@ -18,11 +18,26 @@ def assign_weather_to_patient(
 
 
 @click.command()
-@click.option('--verbose', '-v', is_flag=True, help="Print more output.")
-def meteo_bd(verbose: bool) -> None:
-    weather_observations = parse_meteo_data(PATH_METEO_DATA, PATH_METEO_KEYWORDS, verbose)
+@click.option(
+    "--config_file", required=True, help="Config file with tran/test variables."
+)
+@click.option(
+    "--verbose",
+    "-v",
+    is_flag=True,
+    required=False,
+    default=False,
+    help="Print more output/plots.",
+)
+def meteo_bd(config_file: str, verbose: bool) -> None:
     patients = parse_patient_data(PATH_PATIENT_DATA)
+    weather_observations = parse_meteo_data(
+        PATH_METEO_DATA, PATH_METEO_KEYWORDS, verbose
+    )
     patients = assign_weather_to_patient(patients, weather_observations)
+    # Dataset preparation (tensors to GPU)
+    # Load NN/Model
+    # Train/Test
 
 
 if __name__ == "__main__":

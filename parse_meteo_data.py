@@ -32,15 +32,15 @@ def map_time_to_std_format(datetime: str) -> str:
 
 
 def get_data_from_station(
-    csv_meteo_data: DataFrame, map_meteo_code: Dict[int, str], code_station: str
+    meteo_data: DataFrame, map_meteo_code: Dict[int, str], code_station: str
 ) -> Dict[str, Dict[str, WeatherObservation]]:
-    meteo_data_station = csv_meteo_data["CODI_ESTACIO"]
+    meteo_data_station = meteo_data["CODI_ESTACIO"]
     idx_station = [
         idx for idx, value in enumerate(meteo_data_station) if value == code_station
     ]
-    codes = csv_meteo_data["CODI_VARIABLE"][idx_station]
-    values = csv_meteo_data["VALOR_LECTURA"][idx_station]
-    times = csv_meteo_data["DATA_LECTURA"][idx_station]
+    codes = meteo_data["CODI_VARIABLE"][idx_station]
+    values = meteo_data["VALOR_LECTURA"][idx_station]
+    times = meteo_data["DATA_LECTURA"][idx_station]
     weather_observation = {}
     for code, value, time in zip(codes, values, times):
         keyword_time = map_time_to_std_format(time)
@@ -60,6 +60,30 @@ def print_time_weather_observations(
     [observation.print_weather_observation() for observation in observations.values()]
 
 
+def merge_to_daily(
+    weather_observations: Dict[str, Dict[str, WeatherObservation]]
+) -> Dict[str, Dict[str, WeatherObservation]]:
+    weather_observations_daily = dict()
+    # ToDo Sun hours from irradiation (if 1000W/m^2 then 1 hour?)
+    for datetime, observations in weather_observations.items():
+        date = datetime.split("_")[0]
+        if date not in weather_observations_daily:
+            weather_observations_daily[date] = observations
+        else:
+            for name, observation in observations.items():
+                current_observation = (
+                    weather_observations_daily[date][name]
+                    if name in weather_observations_daily[date]
+                    else None
+                )
+                if (
+                    current_observation is None
+                    or observation.value > current_observation.value
+                ):
+                    weather_observations_daily[date][name] = observation
+    return weather_observations_daily
+
+
 def parse_meteo_data(
     path_meteo_data: str, path_meteo_keywords: str, verbose: bool = False
 ) -> Dict[str, Dict[str, WeatherObservation]]:
@@ -76,9 +100,11 @@ def parse_meteo_data(
     weather_observations = dict(sorted(weather_observations.items()))
     for date, observation in weather_observations.items():
         weather_observations[date] = dict(sorted(observation.items()))
+    # Merge hourly to daily observations
+    weather_observations_daily = merge_to_daily(weather_observations)
     if verbose:
         [
             print_time_weather_observations(key, observations)
-            for key, observations in weather_observations.items()
+            for key, observations in weather_observations_daily.items()
         ]
-    return weather_observations
+    return weather_observations_daily

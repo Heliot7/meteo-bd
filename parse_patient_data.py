@@ -168,6 +168,7 @@ def parse_patient_data(
             diagnosis_text,
             discharge,
         )
+    # Merge hourly to daily observations
     if verbose:
         for key_time, consultation in clinic_consultations.items():
             print(f"Consultation at {key_time}")
