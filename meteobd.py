@@ -4,6 +4,7 @@ import click
 import numpy as np
 import torch
 
+from network import gogo_network
 from parse_meteo_data import parse_meteo_data, WeatherObservation
 from parse_patient_data import parse_patient_data, Consultation
 
@@ -15,9 +16,9 @@ PATH_METEO_KEYWORDS = "data/Metadades_variables_meteorol_giques.csv"
 def create_dataset_weather_to_consultation(weather_observations: Dict[str, Dict[str, WeatherObservation]], consultations: Dict[str, Consultation], list_discharges: List[str]):
     number_days = len(weather_observations)
     keys = list(weather_observations.keys())
-    data = np.zeros(number_days)
+    data = np.zeros(shape=(number_days, 1))
     for idx, observations in enumerate(weather_observations.values()):
-        data[idx] = observations["Temperatura màxima"].value
+        data[idx, 0] = observations["Temperatura màxima"].value
     labels = np.zeros([number_days, len(list_discharges)])
     for date, consultation in consultations.items():
         # Search for date and increase by 1
@@ -48,13 +49,7 @@ def meteo_bd(config_file: str, verbose: bool) -> None:
         PATH_METEO_DATA, PATH_METEO_KEYWORDS, verbose
     )
     data, labels = create_dataset_weather_to_consultation(weather_observations, patients, list_discharges)
-    # Dataset preparation (tensors to GPU)
-    tensor_data = torch.tensor(data)
-    tensor_data = torch.tensor(labels)
-    print(data)
-    print(labels)
-    # Load NN/Model
-    # Train/Test
+    gogo_network(data, labels)
 
 
 if __name__ == "__main__":

@@ -1,83 +1,36 @@
 import torch
-from torch import nn
-from torch.utils.data import DataLoader
-from torchvision import datasets
-from torchvision.transforms import ToTensor
 import numpy as np
-
-
-# Download training data from open datasets.
-training_data = datasets.FashionMNIST(
-    root="data/test",
-    train=True,
-    download=True,
-    transform=ToTensor(),
-)
-
-# Download test data from open datasets.
-test_data = datasets.FashionMNIST(
-    root="data/test",
-    train=False,
-    download=True,
-    transform=ToTensor(),
-)
-
-batch_size = 64
-
-# Create data loaders.
-train_dataloader = DataLoader(training_data, batch_size=batch_size)
-test_dataloader = DataLoader(test_data, batch_size=batch_size)
-
-for X, y in test_dataloader:
-    print(f"Shape of X [N, C, H, W]: {X.shape}")
-    print(f"Shape of y: {y.shape} {y.dtype}")
-    break
-
-# Get cpu, gpu or mps device for training.
-device = (
-    "cuda"
-    if torch.cuda.is_available()
-    else "mps"
-    if torch.backends.mps.is_available()
-    else "cpu"
-)
-print(f"Using {device} device")
+from torch import nn
+from torch.utils.data import TensorDataset, DataLoader
 
 
 # Define model
-class NeuralNetwork(nn.Module):
-    def __init__(self):
+class MeteoBDNet(nn.Module):
+    def __init__(self, in_dims: int, out_dims: int):
         super().__init__()
-        self.flatten = nn.Flatten()
-        self.linear_relu_stack = nn.Sequential(
-            nn.Linear(28*28, 512),
+        self.seq_modules = nn.Sequential(
+            nn.Linear(in_dims, 4),
             nn.ReLU(),
-            nn.Linear(512, 512),
+            nn.Linear(4, 4),
             nn.ReLU(),
-            nn.Linear(512, 10)
+            nn.Linear(4, out_dims)
         )
 
     def forward(self, x):
-        x = self.flatten(x)
-        logits = self.linear_relu_stack(x)
-        return logits
+        return self.seq_modules(x)
 
 
 def train(dataloader, model, loss_fn, optimizer):
     size = len(dataloader.dataset)
     model.train()
     for batch, (X, y) in enumerate(dataloader):
-        X, y = X.to(device), y.to(device)
-
         # Compute prediction error
         pred = model(X)
         loss = loss_fn(pred, y)
-
         # Backpropagation
         loss.backward()
         optimizer.step()
         optimizer.zero_grad()
-
         if batch % 100 == 0:
             loss, current = loss.item(), (batch + 1) * len(X)
             print(f"loss: {loss:>7f}  [{current:>5d}/{size:>5d}]")
@@ -90,53 +43,61 @@ def test(dataloader, model, loss_fn):
     test_loss, correct = 0, 0
     with torch.no_grad():
         for X, y in dataloader:
-            X, y = X.to(device), y.to(device)
             pred = model(X)
             test_loss += loss_fn(pred, y).item()
-            correct += (pred.argmax(1) == y).type(torch.float).sum().item()
+            correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
     test_loss /= num_batches
     correct /= size
     print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
 
 
-model = NeuralNetwork().to(device)
-print(model)
+def gogo_network(data: np.ndarray, labels: np.ndarray) -> None:
 
-loss_fn = nn.CrossEntropyLoss()
-optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
+    # Constants
+    split_train_test = 0.8
+    batch_size = 4
 
-epochs = 5
-for t in range(epochs):
-    print(f"Epoch {t+1}\n-------------------------------")
-    train(train_dataloader, model, loss_fn, optimizer)
-    test(test_dataloader, model, loss_fn)
-print("Done!")
+    # Use GPU if available
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"Using {device} device")
 
-torch.save(model.state_dict(), "models/test.pth")
-print("Saved PyTorch Model State to test.pth")
+    # Dataset preparation (tensors to GPU)
+    # - Split train/test data
+    latest_train_sample = round(data.shape[0] * 0.8)
+    train_data = data[:latest_train_sample, :]
+    train_labels = labels[:latest_train_sample, :]
+    tensor_train_data = torch.Tensor(train_data).to(device)
+    tensor_train_labels = torch.Tensor(train_labels).to(device)
+    test_data = data[latest_train_sample+1:, :]
+    test_labels = labels[latest_train_sample+1:, :]
+    tensor_test_data = torch.Tensor(test_data).to(device)
+    tensor_test_labels = torch.Tensor(test_labels).to(device)
+    train_dataloader = DataLoader(TensorDataset(tensor_train_data, tensor_train_labels), batch_size=batch_size, shuffle=True)
+    test_dataloader = DataLoader(TensorDataset(tensor_test_data, tensor_test_labels), batch_size=batch_size, shuffle=True)
 
-# Load saved model
-model = NeuralNetwork().to(device)
-model.load_state_dict(torch.load("models/test.pth"))
+    # Load NN/Model
+    in_dims = data.shape[1]
+    out_dims = labels.shape[1]
+    model = MeteoBDNet(in_dims, out_dims).to(device)
+    print(model)
 
-# Run inference in example
-classes = [
-    "T-shirt/top",
-    "Trouser",
-    "Pullover",
-    "Dress",
-    "Coat",
-    "Sandal",
-    "Shirt",
-    "Sneaker",
-    "Bag",
-    "Ankle boot",
-]
+    # Train network
+    loss_fn = nn.CrossEntropyLoss()
+    optimizer = torch.optim.SGD(model.parameters(), lr=1e-3)
 
-model.eval()
-x, y = test_data[0][0], test_data[0][1]
-with torch.no_grad():
-    x = x.to(device)
-    pred = model(x)
-    predicted, actual = classes[pred[0].argmax(0)], classes[y]
-    print(f'Predicted: "{predicted}", Actual: "{actual}"')
+    epochs = 5
+    for t in range(epochs):
+        print(f"Epoch {t + 1}\n-------------------------------")
+        train(train_dataloader, model, loss_fn, optimizer)
+        test(test_dataloader, model, loss_fn)
+    print("Done!")
+
+    torch.save(model.state_dict(), "models/meteo_bd.pth")
+
+    # Test network
+    model.eval()
+    x, y = tensor_test_data[0], tensor_test_labels[0]
+    with torch.no_grad():
+        x = x.to(device)
+        y_pred = model(x)
+        print(f'Predicted: "{y_pred}", Actual: "{y}"')

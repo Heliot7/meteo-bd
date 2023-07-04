@@ -1,4 +1,4 @@
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Set
 
 import pandas as pd
 from pandas import DataFrame
@@ -91,7 +91,7 @@ def get_attribute_from_data(
 
 def parse_patient_data(
     path_patient_data: str, verbose: bool = False
-) -> Dict[str, Consultation]:
+) -> [Dict[str, Consultation], List[str], List[str]]:
     consultation_data = pd.read_excel(path_patient_data, skiprows=4)
     discharges = get_attribute_from_data(
         consultation_data, "ALTA_Motiu Alta URG (Desc)"
@@ -168,9 +168,21 @@ def parse_patient_data(
             diagnosis_text,
             discharge,
         )
-    # Merge hourly to daily observations
+    list_diagnosis = set()
+    list_discharges = set()
+    for consultation in clinic_consultations.values():
+        list_diagnosis.add(consultation.diagnosis_id)
+        list_discharges.add(consultation.discharge)
     if verbose:
         for key_time, consultation in clinic_consultations.items():
             print(f"Consultation at {key_time}")
             consultation.print_consultation_info()
-    return clinic_consultations
+            list_diagnosis.add(consultation.diagnosis_id)
+            list_discharges.add(consultation.discharge)
+        print("\n> List of all types of diagnosis:")
+        for diagnosis in list_diagnosis:
+            print(diagnosis)
+        print("\n> List of all types of outcomes (discharges):")
+        for discharge in list_discharges:
+            print(discharge)
+    return clinic_consultations, list(list_diagnosis), list(list_discharges)
