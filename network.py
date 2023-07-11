@@ -9,11 +9,11 @@ class MeteoBDNet(nn.Module):
     def __init__(self, in_dims: int, out_dims: int):
         super().__init__()
         self.seq_modules = nn.Sequential(
-            nn.Linear(in_dims, 4),
+            nn.Linear(in_dims, 5),
             nn.ReLU(),
-            nn.Linear(4, 4),
+            nn.Linear(5, 5),
             nn.ReLU(),
-            nn.Linear(4, out_dims)
+            nn.Linear(5, out_dims),
         )
 
     def forward(self, x):
@@ -48,14 +48,15 @@ def test(dataloader, model, loss_fn):
             correct += (pred.argmax(1) == y.argmax(1)).type(torch.float).sum().item()
     test_loss /= num_batches
     correct /= size
-    print(f"Test Error: \n Accuracy: {(100*correct):>0.1f}%, Avg loss: {test_loss:>8f} \n")
+    print(
+        f"Test Error: \n Accuracy: {(100 * correct):>0.1f}%, Avg loss: {test_loss:>8f} \n"
+    )
 
 
 def gogo_network(data: np.ndarray, labels: np.ndarray) -> None:
-
     # Constants
     split_train_test = 0.8
-    batch_size = 4
+    batch_size = 1
 
     # Use GPU if available
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -63,17 +64,25 @@ def gogo_network(data: np.ndarray, labels: np.ndarray) -> None:
 
     # Dataset preparation (tensors to GPU)
     # - Split train/test data
-    latest_train_sample = round(data.shape[0] * 0.8)
+    latest_train_sample = round(data.shape[0] * split_train_test)
     train_data = data[:latest_train_sample, :]
     train_labels = labels[:latest_train_sample, :]
     tensor_train_data = torch.Tensor(train_data).to(device)
     tensor_train_labels = torch.Tensor(train_labels).to(device)
-    test_data = data[latest_train_sample+1:, :]
-    test_labels = labels[latest_train_sample+1:, :]
+    test_data = data[latest_train_sample + 1 :, :]
+    test_labels = labels[latest_train_sample + 1 :, :]
     tensor_test_data = torch.Tensor(test_data).to(device)
     tensor_test_labels = torch.Tensor(test_labels).to(device)
-    train_dataloader = DataLoader(TensorDataset(tensor_train_data, tensor_train_labels), batch_size=batch_size, shuffle=True)
-    test_dataloader = DataLoader(TensorDataset(tensor_test_data, tensor_test_labels), batch_size=batch_size, shuffle=True)
+    train_dataloader = DataLoader(
+        TensorDataset(tensor_train_data, tensor_train_labels),
+        batch_size=batch_size,
+        shuffle=True,
+    )
+    test_dataloader = DataLoader(
+        TensorDataset(tensor_test_data, tensor_test_labels),
+        batch_size=batch_size,
+        shuffle=True,
+    )
 
     # Load NN/Model
     in_dims = data.shape[1]

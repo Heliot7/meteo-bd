@@ -12,14 +12,40 @@ PATH_PATIENT_DATA = "data/dataurg.xlsx"
 PATH_METEO_DATA = "data/Dades_meteorol_giques_de_la_XEMA_X4.csv"
 PATH_METEO_KEYWORDS = "data/Metadades_variables_meteorol_giques.csv"
 
+NUM_DAYS = 3
+NUM_INPUT_PARAMS = 5
 
-def create_dataset_weather_to_consultation(weather_observations: Dict[str, Dict[str, WeatherObservation]], consultations: Dict[str, Consultation], list_discharges: List[str]):
+
+def create_dataset_weather_to_consultation(
+    weather_observations: Dict[str, Dict[str, WeatherObservation]],
+    consultations: Dict[str, Consultation],
+    list_discharges: List[str],
+):
     number_days = len(weather_observations)
-    keys = list(weather_observations.keys())
-    data = np.zeros(shape=(number_days, 1))
-    for idx, observations in enumerate(weather_observations.values()):
-        data[idx, 0] = observations["Temperatura màxima"].value
-    labels = np.zeros([number_days, len(list_discharges)])
+    keys = list(weather_observations.keys())[NUM_DAYS - 1 :]
+    observations = list(weather_observations.values())
+    data = np.zeros(shape=(number_days - (NUM_DAYS - 1), NUM_INPUT_PARAMS * NUM_DAYS))
+    for idx in range(len(observations)):
+        if idx < NUM_DAYS - 1:
+            continue
+        idx_data = idx - (NUM_DAYS - 1)
+        for idx_day in range(NUM_DAYS):
+            data[idx_data, 0 * NUM_DAYS + idx_day] = observations[idx - idx_day][
+                WeatherObservation.MAX_TEMPERATURE
+            ].value
+            data[idx_data, 1 * NUM_DAYS + idx_day] = observations[idx - idx_day][
+                WeatherObservation.MAX_ATMOSPHERIC_PRESSURE
+            ].value
+            data[idx_data, 2 * NUM_DAYS + idx_day] = observations[idx - idx_day][
+                WeatherObservation.GLOBAL_SOLAR_IRRADIANCE
+            ].value
+            data[idx_data, 3 * NUM_DAYS + idx_day] = observations[idx - idx_day][
+                WeatherObservation.PRECIPITATION
+            ].value
+            data[idx_data, 4 * NUM_DAYS + idx_day] = observations[idx - idx_day][
+                WeatherObservation.MAX_RELATIVE_HUMIDITY
+            ].value
+    labels = np.zeros([number_days - (NUM_DAYS - 1), len(list_discharges)])
     for date, consultation in consultations.items():
         # Search for date and increase by 1
         date = date.split("_")[0]
@@ -48,7 +74,9 @@ def meteo_bd(config_file: str, verbose: bool) -> None:
     weather_observations = parse_meteo_data(
         PATH_METEO_DATA, PATH_METEO_KEYWORDS, verbose
     )
-    data, labels = create_dataset_weather_to_consultation(weather_observations, patients, list_discharges)
+    data, labels = create_dataset_weather_to_consultation(
+        weather_observations, patients, list_discharges
+    )
     gogo_network(data, labels)
 
 

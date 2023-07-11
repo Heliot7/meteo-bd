@@ -7,6 +7,12 @@ CODE_STATION_CLINIC = "X4"  # El Raval (closest to Hospital Clinic BCN)
 
 
 class WeatherObservation:
+    MAX_TEMPERATURE = "Temperatura màxima"
+    MAX_ATMOSPHERIC_PRESSURE = "Pressió atmosfèrica màxima"
+    GLOBAL_SOLAR_IRRADIANCE = "Irradiància solar global"
+    PRECIPITATION = "Precipitació"
+    MAX_RELATIVE_HUMIDITY = "Humitat relativa màxima"
+
     def __init__(self, code, name, value, time) -> None:
         self.code = code
         self.name = name
