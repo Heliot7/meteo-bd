@@ -1,4 +1,4 @@
 data/ filter=lfs diff=lfs merge=lfs -text
-data/dataurg.xlsx filter=lfs diff=lfs merge=lfs -text
 data/Metadades_variables_meteorol_giques.csv filter=lfs diff=lfs merge=lfs -text
 data/Dades_meteorol_giques_de_la_XEMA_X4.csv filter=lfs diff=lfs merge=lfs -text
+data/dataurg.xlsx filter=lfs diff=lfs merge=lfs -text
