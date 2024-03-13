@@ -90,8 +90,16 @@ def get_attribute_from_data(
 
 
 def parse_patient_data(
-    path_patient_data: str, verbose: bool = False
+    path_patient_data: str, max_date: str = "20201231", verbose: bool = False
 ) -> [Dict[str, Consultation], List[str], List[str]]:
+    """
+    All patients from an Excel sheet are parsed with consultation information
+    :param max_date: maximum date to get patient data to evaluate
+    :param path_patient_data: path to the local Excel file to parse
+    :param maximum date that we want to parse
+    :param verbose: for printing additional information
+    :return: returns a Dict of consultations
+    """
     consultation_data = pd.read_excel(path_patient_data, skiprows=4)
     discharges = get_attribute_from_data(
         consultation_data, "ALTA_Motiu Alta URG (Desc)"
@@ -133,6 +141,7 @@ def parse_patient_data(
         consultation_data, "ALTA_Diagnòstic Alta (Desc)", idx_patients_to_remove
     )
     clinic_consultations = dict()
+    max_date_discarded = 0
     for (
         consultation_id,
         p_id,
@@ -157,17 +166,23 @@ def parse_patient_data(
         if verbose:
             print(f"{p_id} {p_age} {p_gender}")
         yyyymmdd = f"{date.date().year}{date.date().month:02}{date.date().day:02}"
-        hhmmss = time.replace(":", "")
-        key_time = f"{yyyymmdd}_{hhmmss}"
-        clinic_consultations[key_time] = Consultation(
-            consultation_id,
-            Patient(int(p_id), int(p_age), p_gender),
-            date,
-            time,
-            diagnosis_id,
-            diagnosis_text,
-            discharge,
-        )
+        if yyyymmdd <= max_date:
+            hhmmss = time.replace(":", "")
+            key_time = f"{yyyymmdd}_{hhmmss}"
+            clinic_consultations[key_time] = Consultation(
+                consultation_id,
+                Patient(int(p_id), int(p_age), p_gender),
+                date,
+                time,
+                diagnosis_id,
+                diagnosis_text,
+                discharge,
+            )
+        else:
+            max_date_discarded += 1
+    print(
+        f"{max_date_discarded}/{len(consultation_ids)} consultations discarded after {max_date}"
+    )
     list_diagnosis = set()
     list_discharges = set()
     for consultation in clinic_consultations.values():

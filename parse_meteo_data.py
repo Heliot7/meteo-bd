@@ -5,14 +5,22 @@ from pandas import DataFrame
 
 CODE_STATION_CLINIC = "X4"  # El Raval (closest to Hospital Clinic BCN)
 
+MAX_TEMPERATURE = "Temperatura màxima"
+MAX_ATMOSPHERIC_PRESSURE = "Pressió atmosfèrica màxima"
+GLOBAL_SOLAR_IRRADIANCE = "Irradiància solar global"
+PRECIPITATION = "Precipitació"
+MAX_RELATIVE_HUMIDITY = "Humitat relativa màxima"
+LIST_OF_WEATHER_OBSERVATIONS = [
+    MAX_TEMPERATURE,
+    MAX_ATMOSPHERIC_PRESSURE,
+    GLOBAL_SOLAR_IRRADIANCE,
+    PRECIPITATION,
+    MAX_RELATIVE_HUMIDITY,
+    # ADD MIN_TEMPERATURE (might also be relevant)
+]
+
 
 class WeatherObservation:
-    MAX_TEMPERATURE = "Temperatura màxima"
-    MAX_ATMOSPHERIC_PRESSURE = "Pressió atmosfèrica màxima"
-    GLOBAL_SOLAR_IRRADIANCE = "Irradiància solar global"
-    PRECIPITATION = "Precipitació"
-    MAX_RELATIVE_HUMIDITY = "Humitat relativa màxima"
-
     def __init__(self, code, name, value, time) -> None:
         self.code = code
         self.name = name
@@ -67,31 +75,38 @@ def print_time_weather_observations(
 
 
 def merge_to_daily(
-    weather_observations: Dict[str, Dict[str, WeatherObservation]]
+    weather_observations: Dict[str, Dict[str, WeatherObservation]], max_date: str
 ) -> Dict[str, Dict[str, WeatherObservation]]:
     weather_observations_daily = dict()
     # ToDo Sun hours from irradiation (if 1000W/m^2 then 1 hour?)
     for datetime, observations in weather_observations.items():
         date = datetime.split("_")[0]
-        if date not in weather_observations_daily:
-            weather_observations_daily[date] = observations
-        else:
-            for name, observation in observations.items():
-                current_observation = (
-                    weather_observations_daily[date][name]
-                    if name in weather_observations_daily[date]
-                    else None
-                )
-                if (
-                    current_observation is None
-                    or observation.value > current_observation.value
-                ):
-                    weather_observations_daily[date][name] = observation
+        if date <= max_date:
+            if date not in weather_observations_daily:
+                weather_observations_daily[date] = observations
+            else:
+                for name, observation in observations.items():
+                    current_observation = (
+                        weather_observations_daily[date][name]
+                        if name in weather_observations_daily[date]
+                        else None
+                    )
+                    if (
+                        current_observation is None
+                        or observation.value > current_observation.value
+                    ):
+                        weather_observations_daily[date][name] = observation
+    print(
+        f"{len(weather_observations_daily)} weather conditions remain before {max_date}."
+    )
     return weather_observations_daily
 
 
 def parse_meteo_data(
-    path_meteo_data: str, path_meteo_keywords: str, verbose: bool = False
+    path_meteo_data: str,
+    path_meteo_keywords: str,
+    max_date: str = "20201231",
+    verbose: bool = False,
 ) -> Dict[str, Dict[str, WeatherObservation]]:
     csv_meteo_keywords = pd.read_csv(path_meteo_keywords)
     meteo_variables_code = csv_meteo_keywords["CODI_VARIABLE"].tolist()
@@ -107,7 +122,7 @@ def parse_meteo_data(
     for date, observation in weather_observations.items():
         weather_observations[date] = dict(sorted(observation.items()))
     # Merge hourly to daily observations
-    weather_observations_daily = merge_to_daily(weather_observations)
+    weather_observations_daily = merge_to_daily(weather_observations, max_date)
     if verbose:
         [
             print_time_weather_observations(key, observations)
