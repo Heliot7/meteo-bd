@@ -1,0 +1,13 @@
+NN:
+- mirar % 98
+- normalizar
+- graficos 
+- entreno por paciente
+
+ToDo:
+- mail Giovanna con codigo y texto de diagnosis
+	- Potencialmente 5 o 6 diagnosis
+	
+
+- Discharge: Probabilidad de ingreso (ya dada en la probabilidad)
+	- Entrenar por paciente y anyadir (edad y genero) + diagnosis mas tarde con la info de Gio
